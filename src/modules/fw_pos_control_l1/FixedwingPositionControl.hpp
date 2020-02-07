@@ -303,6 +303,8 @@ private:
 		int32_t land_early_config_change;
 		float land_airspeed_scale;
 		float land_throtTC_scale;
+		int32_t land_use_parachute;
+		float land_parachute_alt;
 
 		// VTOL
 		float airspeed_trans;
@@ -368,6 +370,8 @@ private:
 		param_t land_early_config_change;
 		param_t land_airspeed_scale;
 		param_t land_throtTC_scale;
+		param_t land_use_parachute;
+		param_t land_parachute_alt;
 
 		param_t vtol_type;
 	} _parameter_handles {};				///< handles for interesting parameters */

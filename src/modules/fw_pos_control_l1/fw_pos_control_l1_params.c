@@ -409,7 +409,27 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
  */
 PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 
+/**
+ * Use parachute for landing
+ *
+ *
+ * @boolean
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_INT32(FW_LND_USE_PRCHT, 0);
 
+
+/**
+ * Parachute opening altitude
+ *
+ *
+ * @unit m
+ * @min 1.0
+ * @max 500.0
+ * @increment 1.0
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_PRCHT_ALT, 20.0f);
 
 /*
  * TECS parameters
