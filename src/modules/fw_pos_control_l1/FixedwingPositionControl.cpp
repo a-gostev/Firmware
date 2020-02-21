@@ -81,8 +81,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_early_config_change = param_find("FW_LND_EARLYCFG");
 	_parameter_handles.land_airspeed_scale = param_find("FW_LND_AIRSPD_SC");
 	_parameter_handles.land_throtTC_scale = param_find("FW_LND_THRTC_SC");
-	_parameter_handles.land_use_parachute = param_find("FW_LND_USE_PARACHUTE");
-	_parameter_handles.land_parachute_alt = param_find("FW_LND_PARACHUTE_ALT");
+	_parameter_handles.land_use_parachute = param_find("FW_LND_USE_PRCHT");
+	_parameter_handles.land_parachute_alt = param_find("FW_LND_PRCHT_ALT");
 
 	_parameter_handles.time_const = param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = param_find("FW_T_THRO_CONST");
