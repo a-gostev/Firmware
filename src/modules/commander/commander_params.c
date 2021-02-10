@@ -967,3 +967,81 @@ PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_PREARM_MODE, 1);
+
+/**
+ * Closed pwm val parachute
+ *
+ * PWM value in us for closed parachute latch
+ *
+ * @min 600
+ * @max 2400
+ * @unit us
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_PRC_CLSD_VAL, 1000);
+
+/**
+ * Open pwm val parachute
+ *
+ * PWM value in us to open parachute
+ *
+ * @min 600
+ * @max 2400
+ * @unit us
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_PRC_OPEN_VAL, 2000);
+
+/**
+ * Open parachute pwm channel
+ *
+ * PWM channel to open parachute
+ *
+ * @min -1
+ * @max 8
+ * @unit ch
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_PRC_OPEN_CH, 7);
+
+/**
+ * Drop pwm val parachute
+ *
+ * PWM value in us to drop parachute
+ *
+ * @min 600
+ * @max 2400
+ * @unit us
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_PRC_DROP_VAL, 2000);
+
+/**
+ * Drop closed pwm val parachute
+ *
+ * PWM value in us for parachute drop servo closed position
+ *
+ * @min 600
+ * @max 2400
+ * @unit us
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_PRC_DROP_CL, 1000);
+
+/**
+ * Drop parachute pwm channel
+ *
+ * PWM channel to drop parachute
+ *
+ * @min -1
+ * @max 8
+ * @unit ch
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_PRC_DROP_CH, 6);

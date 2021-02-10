@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <px4_module.h>
+#include <px4_module_params.h>
 #include <drivers/drv_hrt.h>
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
@@ -51,6 +52,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
@@ -71,7 +73,7 @@ using matrix::Quatf;
 
 using uORB::SubscriptionData;
 
-class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>, public px4::WorkItem
+class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>, public px4::WorkItem, public ModuleParams
 {
 public:
 	FixedwingAttitudeControl();
@@ -98,6 +100,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _att_sub{this, ORB_ID(vehicle_attitude)};	/**< vehicle attitude */
 
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint */
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};			/**< actuator_armed */
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};		/**< global position subscription */
 	uORB::Subscription _manual_sub{ORB_ID(manual_control_setpoint)};		/**< notification of manual control updates */
@@ -120,6 +123,7 @@ private:
 	orb_id_t	_actuators_id{nullptr};		/**< pointer to correct actuator controls0 uORB metadata structure */
 	orb_advert_t	_actuators_0_pub{nullptr};	/**< actuator control group 0 setpoint */
 
+	actuator_armed_s			_actuator_armed {};
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
 	actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
 	manual_control_setpoint_s		_manual {};		/**< r/c channel data */
@@ -302,4 +306,13 @@ private:
 	void		vehicle_land_detected_poll();
 
 	float 		get_airspeed_and_update_scaling();
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::COM_PRC_OPEN_CH>) _param_parachute_open_channel,
+		(ParamInt<px4::params::COM_PRC_OPEN_VAL>) _param_parachute_open_val,
+		(ParamInt<px4::params::COM_PRC_CLSD_VAL>) _param_parachute_closed_val,
+		(ParamInt<px4::params::COM_PRC_DROP_CH>) _param_parachute_drop_channel,
+		(ParamInt<px4::params::COM_PRC_DROP_VAL>) _param_parachute_drop_val,
+		(ParamInt<px4::params::COM_PRC_DROP_CL>) _param_parachute_drop_closed_val
+
+	)
 };

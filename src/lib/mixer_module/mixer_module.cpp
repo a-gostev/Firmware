@@ -64,6 +64,8 @@ _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
 	_armed.ready_to_arm = false;
 	_armed.lockdown = false;
 	_armed.force_failsafe = false;
+	_armed.open_parachute = false;
+	_armed.drop_parachute = false;
 	_armed.in_esc_calibration_mode = false;
 
 	px4_sem_init(&_lock, 0, 1);
@@ -339,6 +341,11 @@ bool MixingOutput::update()
 	float outputs[MAX_ACTUATORS] {};
 	const unsigned mixed_num_outputs = _mixers->mix(outputs, _max_num_outputs);
 
+	if (_armed.open_parachute)
+	{
+		_throttle_armed = false;
+	}
+
 	/* the output limit call takes care of out of band errors, NaN and constrains */
 	output_limit_calc(_throttle_armed, armNoThrottle(), mixed_num_outputs, _reverse_output_mask,
 			  _disarmed_value, _min_value, _max_value, outputs, _current_output_value, &_output_limit);
@@ -347,6 +354,29 @@ bool MixingOutput::update()
 	if (_armed.force_failsafe) {
 		for (size_t i = 0; i < mixed_num_outputs; i++) {
 			_current_output_value[i] = _failsafe_value[i];
+		}
+	}
+
+	if (_param_parachute_open_channel.get() > 0 && _param_parachute_open_channel.get() <= 8)
+	{
+		if (_armed.open_parachute || _armed.force_failsafe)
+		{
+			_current_output_value[_param_parachute_open_channel.get() - 1] = _param_parachute_open_val.get();
+		}
+		else
+		{
+			_current_output_value[_param_parachute_open_channel.get() - 1] = _param_parachute_closed_val.get();
+		}
+	}
+	if (_param_parachute_drop_channel.get() > 0 && _param_parachute_drop_channel.get() <= 8)
+	{
+		if (_armed.drop_parachute)
+		{
+			_current_output_value[_param_parachute_drop_channel.get() - 1] = _param_parachute_drop_val.get();
+		}
+		else
+		{
+			_current_output_value[_param_parachute_drop_channel.get() - 1] = _param_parachute_drop_closed_val.get();
 		}
 	}
 
@@ -360,6 +390,8 @@ bool MixingOutput::update()
 
 		stop_motors = true;
 	}
+
+
 
 	/* apply _param_mot_ordering */
 	reorderOutputs(_current_output_value);

@@ -46,6 +46,7 @@ extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw_att_control: cycle"))
 {
 	// check if VTOL first
@@ -529,6 +530,7 @@ void FixedwingAttitudeControl::Run()
 		vehicle_manual_poll();
 		_global_pos_sub.update(&_global_pos);
 		vehicle_land_detected_poll();
+		_actuator_armed_sub.update(&_actuator_armed);
 
 		// the position controller will not emit attitude setpoints in some modes
 		// we need to make sure that this flag is reset
@@ -540,10 +542,10 @@ void FixedwingAttitudeControl::Run()
 
 		/* Simple handling of failsafe: deploy parachute if failsafe is on */
 		if (_vcontrol_mode.flag_control_termination_enabled) {
-			_actuators_airframe.control[7] = 1.0f;
+			_actuators_airframe.control[_param_parachute_open_channel.get() - 1] = math::constrain((_param_parachute_open_val.get() - 1500) * 0.002f, -1.0f, 1.0f);;
 
 		} else {
-			_actuators_airframe.control[7] = 0.0f;
+			_actuators_airframe.control[_param_parachute_open_channel.get() - 1] = math::constrain((_param_parachute_closed_val.get() - 1500) * 0.002f, -1.0f, 1.0f);;
 		}
 
 		/* if we are in rotary wing mode, do nothing */
@@ -782,6 +784,30 @@ void FixedwingAttitudeControl::Run()
 		// FIXME: this should use _vcontrol_mode.landing_gear_pos in the future
 		_actuators.control[7] = _manual.aux3;
 
+		if (_param_parachute_open_channel.get() > 0 && _param_parachute_open_channel.get() <= 8)
+		{
+			if (_actuator_armed.open_parachute || _actuator_armed.force_failsafe)
+			{
+				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
+				_actuators.control[_param_parachute_open_channel.get() - 1] = math::constrain((_param_parachute_open_val.get() - 1500) * 0.002f, -1.0f, 1.0f);
+			}
+			else
+			{
+				_actuators.control[_param_parachute_open_channel.get() - 1] = math::constrain((_param_parachute_closed_val.get() - 1500) * 0.002f, -1.0f, 1.0f);
+			}
+		}
+		if (_param_parachute_drop_channel.get() > 0 && _param_parachute_drop_channel.get() <= 8)
+		{
+			if (_actuator_armed.drop_parachute)
+			{
+				_actuators.control[_param_parachute_drop_channel.get() - 1] = math::constrain((_param_parachute_drop_val.get() - 1500) * 0.002f, -1.0f, 1.0f);
+			}
+			else
+			{
+				_actuators.control[_param_parachute_drop_channel.get() - 1] = math::constrain((_param_parachute_drop_closed_val.get() - 1500) * 0.002f, -1.0f, 1.0f);
+			}
+		}
+
 		/* lazily publish the setpoint only once available */
 		_actuators.timestamp = hrt_absolute_time();
 		_actuators.timestamp_sample = _att.timestamp;
@@ -799,9 +825,10 @@ void FixedwingAttitudeControl::Run()
 			} else if (_actuators_id) {
 				_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
 			}
-
-			_actuators_2_pub.publish(_actuators_airframe);
 		}
+	/*	if (_vcontrol_mode.flag_control_termination_enabled) {
+			_actuators_2_pub.publish(_actuators_airframe);
+		}*/
 	}
 
 	perf_end(_loop_perf);

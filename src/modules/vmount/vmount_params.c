@@ -50,8 +50,9 @@
 * @value 1 RC
 * @value 2 MAVLINK_ROI
 * @value 3 MAVLINK_DO_MOUNT
+* @value 4 NADIR
 * @min -1
-* @max 3
+* @max 4
 * @group Mount
 * @reboot_required true
 */
@@ -228,3 +229,62 @@ PARAM_DEFINE_FLOAT(MNT_OFF_ROLL, 0.0f);
 * @group Mount
 */
 PARAM_DEFINE_FLOAT(MNT_OFF_YAW, 0.0f);
+
+/**
+* Min pitch channel val.
+*
+* @min -1.2
+* @max 1.2
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_MIN_PITCH, -1.0f);
+
+/**
+* Max pitch channel pwm output in us.
+*
+* @min -1.2
+* @max 1.2
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_MAX_PITCH, 1.0f);
+
+/**
+* Min roll channel pwm output in us.
+*
+* @min -1.2
+* @max 1.2
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_MIN_ROLL, -1.0f);
+
+/**
+* Max roll channel pwm output in us.
+*
+* @min -1.2
+* @max 1.2
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_MAX_ROLL, 1.0f);
+/**
+* Min yaw channel pwm output in us.
+*
+* @min -1.2
+* @max 1.2
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_MIN_YAW, -1.0f);
+
+/**
+* Max yaw channel pwm output in us.
+*
+* @min -1.2
+* @max 1.2
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_MAX_YAW, 1.0f);

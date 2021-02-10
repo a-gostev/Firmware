@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -32,67 +32,55 @@
 ****************************************************************************/
 
 /**
- * @file output_rc.cpp
- * @author Leon Müller (thedevleon)
- * @author Beat Küng <beat-kueng@gmx.net>
+ * @file input_nadir.cpp
+ * @author Andrey Gostev
  *
  */
 
-#include "output_rc.h"
+#include "input_nadir.h"
 
-#include <uORB/topics/actuator_controls.h>
-#include <px4_defines.h>
-#include <mathlib/mathlib.h>
+#include <math.h>
+
+#include <px4_posix.h>
 
 
 namespace vmount
 {
 
-OutputRC::OutputRC(const OutputConfig &output_config)
-	: OutputBase(output_config)
+InputNadir::InputNadir(float roll_deg, float pitch_deg, float yaw_deg)
 {
-}
-OutputRC::~OutputRC()
-{
-	if (_actuator_controls_pub) {
-		orb_unadvertise(_actuator_controls_pub);
-	}
+	_angles[0] = roll_deg;
+	_angles[1] = pitch_deg;
+	_angles[2] = yaw_deg;
 }
 
-int OutputRC::update(const ControlData *control_data)
+int InputNadir::update(unsigned int timeout_ms, ControlData **control_data, bool already_active)
 {
-	if (control_data) {
-		//got new command
-		_retract_gimbal = control_data->gimbal_shutter_retract;
-		_set_angle_setpoints(control_data);
+	//we directly override the update() here, since we don't need the initialization from the base class
+
+	_control_data.type = ControlData::Type::Angle;
+
+	for (int i = 0; i < 3; ++i) {
+		_control_data.type_data.angle.is_speed[i] = false;
+		_control_data.type_data.angle.angles[i] = _angles[i] * M_DEG_TO_RAD_F;
+
+		_control_data.stabilize_axis[i] = true;
 	}
 
-	_handle_position_update();
-
-	hrt_abstime t = hrt_absolute_time();
-	_calculate_output_angles(t);
-
-	actuator_controls_s actuator_controls;
-	actuator_controls.timestamp = hrt_absolute_time();
-	// _angle_outputs are in radians, actuator_controls are in [-1, 1]
-	actuator_controls.control[0] = math::constrain((_angle_outputs[0] + _config.roll_offset) * _config.roll_scale, _config.roll_min, _config.roll_max);
-	actuator_controls.control[1] = math::constrain((_angle_outputs[1] + _config.pitch_offset) * _config.pitch_scale, _config.pitch_min, _config.pitch_max);
-	actuator_controls.control[2] = math::constrain((_angle_outputs[2] + _config.yaw_offset) * _config.yaw_scale, _config.yaw_min, _config.yaw_max);
-	actuator_controls.control[3] = _retract_gimbal ? _config.gimbal_retracted_mode_value : _config.gimbal_normal_mode_value;
-
-	int instance;
-	orb_publish_auto(ORB_ID(actuator_controls_2), &_actuator_controls_pub, &actuator_controls,
-			 &instance, ORB_PRIO_DEFAULT);
-
-	_last_update = t;
-
+	_control_data.gimbal_shutter_retract = false;
+	*control_data = &_control_data;
+	usleep(timeout_ms);
 	return 0;
 }
 
-void OutputRC::print_status()
+int InputNadir::initialize()
 {
-	PX4_INFO("Output: AUX");
+	return 0;
+}
+
+void InputNadir::print_status()
+{
+	PX4_INFO("Input: Nadir");
 }
 
 } /* namespace vmount */
-

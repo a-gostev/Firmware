@@ -87,6 +87,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/wind_estimate.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
 
@@ -163,6 +164,7 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};		///< vehicle command subscription */
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	///< vehicle land detected subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			///< vehicle status subscription */
+	uORB::Subscription _wind_estimate_sub{ORB_ID(wind_estimate)};			///< vehicle status subscription */
 	uORB::SubscriptionData<vehicle_angular_velocity_s>	_vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
 	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint */
@@ -182,6 +184,7 @@ private:
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position */
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
 	vehicle_status_s		_vehicle_status {};		///< vehicle status */
+	wind_estimate_s			_wind_estimate {};		///< wind_estimate */
 
 	SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
 	SubscriptionData<vehicle_acceleration_s>	_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
@@ -200,6 +203,8 @@ private:
 	position_setpoint_s _hdg_hold_curr_wp {};		///< position to which heading hold flies */
 
 	hrt_abstime _control_position_last_called{0};		///< last call of control_position  */
+
+	map_projection_reference_s ref;
 
 	/* Landing */
 	bool _land_noreturn_horizontal{false};

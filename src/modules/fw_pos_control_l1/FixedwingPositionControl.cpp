@@ -1353,6 +1353,27 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	Vector2f curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
 	Vector2f prev_wp{0.0f, 0.0f}; /* previous waypoint */
 
+	double drop_lat = pos_sp_curr.lat;	///< degrees
+	double drop_lon = pos_sp_curr.lon;	///< degrees
+
+	if (_parameters.land_use_parachute)
+	{
+		map_projection_init(&ref, pos_sp_curr.lat, pos_sp_curr.lon);
+
+		float parachuting_downspeed = 5.0f;
+
+		float parachuting_time = _parameters.land_parachute_alt / parachuting_downspeed;
+
+		float x_drop = -1.f * _wind_estimate.windspeed_north * parachuting_time;
+		float y_drop = -1.f * _wind_estimate.windspeed_east * parachuting_time;
+
+		map_projection_reproject(&ref, x_drop, y_drop, &drop_lat, &drop_lon);
+
+		curr_wp(0) = drop_lat;
+		curr_wp(1) = drop_lon;
+
+	}
+
 	if (pos_sp_prev.valid) {
 		prev_wp(0) = (float)pos_sp_prev.lat;
 		prev_wp(1) = (float)pos_sp_prev.lon;
@@ -1406,10 +1427,10 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	// will always follow the desired flight path even if we get close or past
 	// the landing waypoint
 	if (pos_sp_prev.valid) {
-		double lat = pos_sp_curr.lat;
-		double lon = pos_sp_curr.lon;
+		double lat = drop_lat;
+		double lon = drop_lon;
 
-		create_waypoint_from_line_and_dist(pos_sp_curr.lat, pos_sp_curr.lon,
+		create_waypoint_from_line_and_dist(drop_lat, drop_lon,
 						   pos_sp_prev.lat, pos_sp_prev.lon, -1000.0f, &lat, &lon);
 
 		curr_wp(0) = (float)lat;
@@ -1494,8 +1515,11 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	 * horizontal limit (with some tolerance)
 	 * The horizontal limit is only applied when we are in front of the wp
 	 */
-	if ((_global_pos.alt < terrain_alt + _landingslope.flare_relative_alt() + (_parameters.land_use_parachute ? _parameters.land_parachute_alt : 0.f)) ||
-	    _land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
+	if (((_global_pos.alt < terrain_alt + _landingslope.flare_relative_alt() + (_parameters.land_use_parachute ? _parameters.land_parachute_alt : 0.f)) &&
+		wp_distance_save < _landingslope.flare_length() + 5.0f) || // normal landing
+		(_parameters.land_use_parachute && (_global_pos.alt < (terrain_alt + _landingslope.flare_relative_alt() + (_parameters.land_use_parachute ? _parameters.land_parachute_alt : 0.f)) * 0.7f)) || // too low on glissade
+		(_parameters.land_use_parachute && wp_distance_save < 1.0f) || // over drop point
+	    	_land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 
 		/* land with minimal speed */
 
@@ -1508,40 +1532,41 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			_att_sp.thrust_body[0] = 0; //throttle_land;
 			_att_sp.pitch_body = _flare_pitch_sp;
 			_att_sp.roll_body = 0;
-		//	_actuators_airframe.control[7] = 1.0f;
 
-			/* send this to itself */
-			param_t sys_id_param = param_find("MAV_SYS_ID");
-			param_t comp_id_param = param_find("MAV_COMP_ID");
+			if (wp_distance_save < 1.0f || _global_pos.alt < (terrain_alt + _parameters.land_parachute_alt) * 0.7f)
+			{
+				/* send this to itself */
+				param_t sys_id_param = param_find("MAV_SYS_ID");
+				param_t comp_id_param = param_find("MAV_COMP_ID");
 
-			int32_t sys_id;
-			int32_t comp_id;
+				int32_t sys_id;
+				int32_t comp_id;
 
-			if (param_get(sys_id_param, &sys_id)) {
-				errx(1, "PRM SYSID");
+				if (param_get(sys_id_param, &sys_id)) {
+					errx(1, "PRM SYSID");
+				}
+
+				if (param_get(comp_id_param, &comp_id)) {
+					errx(1, "PRM CMPID");
+				}
+
+				// prepare vehicle command
+				vehicle_command_s vcmd = {};
+				vcmd.target_system = (uint8_t)sys_id;
+				vcmd.target_component = (uint8_t)comp_id;
+				vcmd.source_system = (uint8_t)sys_id;
+				vcmd.source_component = (uint8_t)comp_id;
+				vcmd.confirmation = true; // ask to confirm command
+
+				// send command to terminate flight via command API
+				vcmd.timestamp = hrt_absolute_time();
+				vcmd.param1 = 3.0f; // request parachute to open
+				vcmd.param3 = 0.0f;
+				vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
+				//send command once
+				uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ ORB_ID(vehicle_command) };
+				vcmd_pub.publish(vcmd);
 			}
-
-			if (param_get(comp_id_param, &comp_id)) {
-				errx(1, "PRM CMPID");
-			}
-
-			/* prepare vehicle command */
-			vehicle_command_s vcmd = {};
-			vcmd.target_system = (uint8_t)sys_id;
-			vcmd.target_component = (uint8_t)comp_id;
-			vcmd.source_system = (uint8_t)sys_id;
-			vcmd.source_component = (uint8_t)comp_id;
-			vcmd.confirmation = true; /* ask to confirm command */
-
-
-			mavlink_log_emergency(&_mavlink_log_pub, "IO is in failsafe, force failsafe");
-			/* send command to terminate flight via command API */
-			vcmd.timestamp = hrt_absolute_time();
-			vcmd.param1 = 1.0f; /* request flight termination */
-			vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
-						/* send command once */
-			uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ ORB_ID(vehicle_command) };
-			vcmd_pub.publish(vcmd);
 		}
 		else
 		{
@@ -1757,6 +1782,7 @@ FixedwingPositionControl::Run()
 		vehicle_status_poll();
 		_vehicle_acceleration_sub.update();
 		_vehicle_rates_sub.update();
+		_wind_estimate_sub.update(&_wind_estimate);
 
 		Vector2f curr_pos((float)_global_pos.lat, (float)_global_pos.lon);
 		Vector2f ground_speed(_global_pos.vel_n, _global_pos.vel_e);

@@ -37,6 +37,7 @@ px4_add_module(
 	SRCS
 		input.cpp
 		input_mavlink.cpp
+		input_nadir.cpp
 		input_rc.cpp
 		input_test.cpp
 		output.cpp

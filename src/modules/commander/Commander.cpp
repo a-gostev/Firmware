@@ -866,7 +866,22 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION: {
-			if (cmd.param1 > 1.5f) {
+			if (cmd.param1 > 2.5f) {
+			//	armed_local->armed = false;
+			//	warnx("forcing lockdown (motors off)");
+
+				armed_local->open_parachute = true;
+				warnx("opening parachute");
+				mavlink_log_emergency(&mavlink_log_pub, "CMD: opening parachute");
+
+				if ((int)cmd.param3 > 0.5f) {
+					/* release parachute */
+					warnx("dropping parachute");
+					mavlink_log_emergency(&mavlink_log_pub, "CMD: dropping parachute");
+					armed_local->drop_parachute = true;
+				}
+
+			} else if (cmd.param1 > 1.5f) {
 				armed_local->lockdown = true;
 				warnx("forcing lockdown (motors off)");
 
@@ -883,6 +898,9 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			} else {
 				armed_local->force_failsafe = false;
 				armed_local->lockdown = false;
+				armed_local->manual_lockdown = false;
+				armed_local->open_parachute = false;
+				armed_local->drop_parachute = false;
 				warnx("disabling failsafe and lockdown");
 			}
 

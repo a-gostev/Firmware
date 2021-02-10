@@ -285,5 +285,15 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			y = -tmp;
 			return;
 		}
+
+	case ROTATION_PITCH_10: {
+			float tmpx = x;
+			float tmpy = y;
+			float tmpz = z;
+			x =  0.984807f * tmpx +  0.000000f * tmpy +  0.173648f * tmpz;
+			y =  0.000000f * tmpx +  1.000000f * tmpy +  0.000000f * tmpz;
+			z = -0.173648f * tmpx +  0.000000f * tmpy +  0.984807f * tmpz;
+			return;
+		}
 	}
 }

@@ -127,7 +127,7 @@ bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bo
 		}
 	}
 
-	if (already_active || major_movement || _first_time) {
+	if (already_active || major_movement || _first_time) { // ToDo: Hack
 
 		_first_time = false;
 

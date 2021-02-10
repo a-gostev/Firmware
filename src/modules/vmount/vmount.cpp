@@ -58,6 +58,7 @@
 #include "input_mavlink.h"
 #include "input_rc.h"
 #include "input_test.h"
+#include "input_nadir.h"
 #include "output_rc.h"
 #include "output_mavlink.h"
 
@@ -99,6 +100,12 @@ struct Parameters {
 	float mnt_off_pitch;
 	float mnt_off_roll;
 	float mnt_off_yaw;
+	float mnt_min_pitch;
+	float mnt_max_pitch;
+	float mnt_min_roll;
+	float mnt_max_roll;
+	float mnt_min_yaw;
+	float mnt_max_yaw;
 
 	bool operator!=(const Parameters &p)
 	{
@@ -119,7 +126,13 @@ struct Parameters {
 		       mnt_range_yaw != p.mnt_range_yaw ||
 		       mnt_off_pitch != p.mnt_off_pitch ||
 		       mnt_off_roll != p.mnt_off_roll ||
-		       mnt_off_yaw != p.mnt_off_yaw;
+		       mnt_off_yaw != p.mnt_off_yaw ||
+		       mnt_min_pitch != p.mnt_min_pitch ||
+		       mnt_max_pitch != p.mnt_max_pitch ||
+		       mnt_min_roll != p.mnt_min_roll ||
+		       mnt_max_roll != p.mnt_max_roll ||
+		       mnt_min_yaw != p.mnt_min_yaw ||
+		       mnt_max_yaw != p.mnt_max_yaw;
 #pragma GCC diagnostic pop
 
 	}
@@ -142,6 +155,12 @@ struct ParameterHandles {
 	param_t mnt_off_pitch;
 	param_t mnt_off_roll;
 	param_t mnt_off_yaw;
+	param_t mnt_min_pitch;
+	param_t mnt_max_pitch;
+	param_t mnt_min_roll;
+	param_t mnt_max_roll;
+	param_t mnt_min_yaw;
+	param_t mnt_max_yaw;
 };
 
 
@@ -235,6 +254,12 @@ static int vmount_thread_main(int argc, char *argv[])
 			output_config.yaw_offset = params.mnt_off_yaw * M_DEG_TO_RAD_F;
 			output_config.mavlink_sys_id = params.mnt_mav_sysid;
 			output_config.mavlink_comp_id = params.mnt_mav_compid;
+			output_config.pitch_min = params.mnt_min_pitch;
+			output_config.pitch_max = params.mnt_max_pitch;
+			output_config.roll_min = params.mnt_min_roll;
+			output_config.roll_max = params.mnt_max_roll;
+			output_config.yaw_min = params.mnt_min_yaw;
+			output_config.yaw_max = params.mnt_max_yaw;
 
 			bool alloc_failed = false;
 			thread_data.input_objs_len = 1;
@@ -270,6 +295,10 @@ static int vmount_thread_main(int argc, char *argv[])
 
 				case 3: //MAVLINK_DO_MOUNT
 					thread_data.input_objs[0] = new InputMavlinkCmdMount(params.mnt_do_stab);
+					break;
+
+				case 4: //NADIR
+					thread_data.input_objs[0] = new InputNadir(0.0f, 0.0f, 0.0f);
 					break;
 
 				default:
@@ -540,6 +569,12 @@ void update_params(ParameterHandles &param_handles, Parameters &params, bool &go
 	param_get(param_handles.mnt_off_pitch, &params.mnt_off_pitch);
 	param_get(param_handles.mnt_off_roll, &params.mnt_off_roll);
 	param_get(param_handles.mnt_off_yaw, &params.mnt_off_yaw);
+	param_get(param_handles.mnt_min_pitch, &params.mnt_min_pitch);
+	param_get(param_handles.mnt_max_pitch, &params.mnt_max_pitch);
+	param_get(param_handles.mnt_min_roll, &params.mnt_min_roll);
+	param_get(param_handles.mnt_max_roll, &params.mnt_max_roll);
+	param_get(param_handles.mnt_min_yaw, &params.mnt_min_yaw);
+	param_get(param_handles.mnt_max_yaw, &params.mnt_max_yaw);
 
 	got_changes = prev_params != params;
 }
@@ -562,6 +597,13 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_off_pitch = param_find("MNT_OFF_PITCH");
 	param_handles.mnt_off_roll = param_find("MNT_OFF_ROLL");
 	param_handles.mnt_off_yaw = param_find("MNT_OFF_YAW");
+
+	param_handles.mnt_min_pitch = param_find("MNT_MIN_PITCH");
+	param_handles.mnt_max_pitch = param_find("MNT_MAX_PITCH");
+	param_handles.mnt_min_roll = param_find("MNT_MIN_ROLL");
+	param_handles.mnt_max_roll = param_find("MNT_MAX_ROLL");
+	param_handles.mnt_min_yaw = param_find("MNT_MIN_YAW");
+	param_handles.mnt_max_yaw = param_find("MNT_MAX_YAW");
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
